@@ -1,10 +1,3 @@
-/*
- * Sensor.c
- *
- *  Created on: 19/09/2016
- *      Author: edielson
- */
-
 #include "lpc17xx_pinsel.h"
 #include "lpc17xx_gpio.h"
 #include "lpc17xx_ssp.h"
