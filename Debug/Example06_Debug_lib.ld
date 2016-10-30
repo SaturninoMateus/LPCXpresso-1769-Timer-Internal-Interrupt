@@ -4,13 +4,12 @@
  * (c) NXP Semiconductors 2013-2016
  * Generated linker script file for LPC1768
  * Created from LibIncTemplate.ld (LPCXpresso v6.1 (4 [Build 194] [2014-01-15] ))
- * By LPCXpresso v6.1.4 [Build 194] [2014-01-15]  on Sat Sep 03 03:30:01 BRT 2016
+ * By LPCXpresso v6.1.4 [Build 194] [2014-01-15]  on Sun Oct 30 15:37:44 BRST 2016
  */
 
 
  GROUP(
- libgcc.a
- libc.a
- libm.a
- libcr_newlib_semihost.a
+ libcr_semihost.a
+ libcr_c.a
+ libcr_eabihelpers.a
  )

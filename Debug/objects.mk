@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lCMSISv1p30_LPC17xx -lLib_EaBaseBoard -lLib_MCU
+LIBS := -lCMSISv1p30_LPC17xx -lFreeRTOS_Library -lLib_EaBaseBoard -lLib_MCU
 
