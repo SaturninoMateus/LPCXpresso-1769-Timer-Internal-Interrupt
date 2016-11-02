@@ -26,7 +26,7 @@ ttag_sensor ClassHandle;
 void Sensor_new(void)
 {
 	Sensor_initI2C();
-	oled_init();
+	//oled_init();
 
 	//Initialize sensor
 	light_init(); //Unnecessary

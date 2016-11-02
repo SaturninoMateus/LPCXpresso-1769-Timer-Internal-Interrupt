@@ -136,48 +136,14 @@ static void initSSP(void)
 	SSP_Cmd(LPC_SSP1, ENABLE);
 
 }
-static void initADC(void)
-{
-	PINSEL_CFG_Type PinCfg;
 
-	/*
-	 * Init ADC pin connect
-	 * AD0.5 on P1.31
-	 */
-	PinCfg.Funcnum = 3;
-	PinCfg.OpenDrain = 0;
-	PinCfg.Pinmode = 0;
-	PinCfg.Pinnum = 31;
-	PinCfg.Portnum = 1;
-	PINSEL_ConfigPin(&PinCfg);
-
-	/* Configuration for ADC :
-	 * 	Frequency at 1Mhz
-	 *  ADC channel 5, no Interrupt
-	 */
-	ADC_Init(LPC_ADC, 1000000);
-
-	//NVIC_EnableIRQ(ADC_IRQn);
-	ADC_IntConfig(LPC_ADC,ADC_CHANNEL_5,ENABLE);
-	ADC_ChannelCmd(LPC_ADC,ADC_CHANNEL_5,ENABLE);
-	ADC_EdgeStartConfig(LPC_ADC, ADC_START_ON_RISING);
-	ADC_StartCmd(LPC_ADC,ADC_START_NOW);
-
-}
-
-static void initAll(void){
-		initADC();
-		initSSP();
-		oled_init();
-		Sensor_new();
-		oled_clearScreen(OLED_COLOR_WHITE);
-		oled_putString(1,1,  (uint8_t*)"LUZ: ", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-}
 
 xQueueHandle Global_Queue_handle = 0;
 
 void task_reader(void *p){
-	//Read the sensor every 5sec
+	//Read and send the data
+	initSSP();
+	Sensor_new();
 	uint32_t val = 0;
 	while(1){
 		puts("TaskRead");
@@ -190,13 +156,20 @@ void task_reader(void *p){
 		else{
 			printf("Data sent sucessfull!\n");
 		}
-		vTaskDelay(1000*5); // wait 5sec
+		//vTaskDelay(1000*5); // wait 5sec
+		taskYIELD();
 	}
 }
 
 void task_printer(void *p){
+	//Receive the data and print in BNC OLED
+	oled_init();
+	oled_clearScreen(OLED_COLOR_WHITE);
+	oled_putString(1,1,  (uint8_t*)"LUZ: ", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
+
+	uint32_t val;
 	while(1){
-		uint32_t val = 0;
+		val = 0;
 		puts("TaskPrint");
 
 		//1000 means 1sec of timeout
@@ -219,12 +192,13 @@ void task_printer(void *p){
 
 int main( void )
 {
-	initAll();
+
+
 	Global_Queue_handle = xQueueCreate(3, sizeof(uint32_t));
 
 	/* Create two instances of the continuous processing task, with priority 5 and 1. */
-	xTaskCreate( task_reader, (signed char*)"Task 1 Read", 1024, NULL, 5, NULL );
-	xTaskCreate( task_printer, (signed char*)"Task 2 Print", 1024, NULL, 1, NULL );
+	xTaskCreate( task_reader, (signed char*)"Task 1 Read", 240, NULL, 2, NULL );
+	xTaskCreate( task_printer, (signed char*)"Task 2 Print", 240, NULL, 1, NULL );
 	/* Create one instance of the periodic task at priority 2. */
 	//xTaskCreate( vPeriodicTask, "Task 3", 240, (void*)pcTextForPeriodicTask, 2, NULL );
 
@@ -239,56 +213,7 @@ int main( void )
 }
 /*-----------------------------------------------------------*/
 
-void vContinuousProcessingTask( void *pvParameters )
-{
-char *pcTaskName;
-volatile unsigned long ul;
 
-	/* The string to print out is passed in via the parameter.  Cast this to a
-	character pointer. */
-	pcTaskName = ( char * ) pvParameters;
-
-	/* As per most tasks, this task is implemented in an infinite loop. */
-	for( ;; )
-	{
-		/* Print out the name of this task.  This task just does this repeatedly
-		without ever blocking or delaying. */
-		vPrintString( pcTaskName );
-
-		/* A null loop has been inserted just to slow down the rate at which
-		messages are sent down the debug link to the console.  Without this
-		messages print out too quickly for the debugger display and controls
-		to keep up.  For clarity this null loop is not shown in the eBook text
-		as it is not relevant to the behaviour being demonstrated. */
-		for( ul = 0; ul < 0x1fff; ul++ )
-		{
-			asm volatile( "NOP" );
-		}
-	}
-}
-/*-----------------------------------------------------------*/
-
-void vPeriodicTask( void *pvParameters )
-{
-portTickType xLastWakeTime;
-
-	/* The xLastWakeTime variable needs to be initialized with the current tick
-	count.  Note that this is the only time we access this variable.  From this
-	point on xLastWakeTime is managed automatically by the vTaskDelayUntil()
-	API function. */
-	xLastWakeTime = xTaskGetTickCount();
-
-	/* As per most tasks, this task is implemented in an infinite loop. */
-	for( ;; )
-	{
-		/* Print out the name of this task. */
-		vPrintString( "Periodic task is running..........\n" );
-
-		/* We want this task to execute exactly every 10 milliseconds. */
-		vTaskDelayUntil( &xLastWakeTime, ( 10 / portTICK_RATE_MS ) );
-	}
-}
-/*-----------------------------------------------------------*/
 
 void vApplicationMallocFailedHook( void )
 {
