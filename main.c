@@ -44,61 +44,8 @@
 #include "lpc17xx_ssp.h"
 #include "lpc17xx_adc.h"
 #include "lpc17xx_timer.h"
-#include "oled.h"
+#include "display.h"
 
-
-static uint8_t buf[10];
-static void intToString(int value, uint8_t* pBuf, uint32_t len, uint32_t base)
-{
-	static const char* pAscii = "0123456789abcdefghijklmnopqrstuvwxyz";
-	int pos = 0;
-	int tmpValue = value;
-
-	// the buffer must not be null and at least have a length of 2 to handle one
-	// digit and null-terminator
-	if (pBuf == NULL || len < 2)
-	{
-		return;
-	}
-
-	// a valid base cannot be less than 2 or larger than 36
-	// a base value of 2 means binary representation. A value of 1 would mean only zeros
-	// a base larger than 36 can only be used if a larger alphabet were used.
-	if (base < 2 || base > 36)
-	{
-		return;
-	}
-
-	// negative value
-	if (value < 0)
-	{
-		tmpValue = -tmpValue;
-		value    = -value;
-		pBuf[pos++] = '-';
-	}
-
-	// calculate the required length of the buffer
-	do {
-		pos++;
-		tmpValue /= base;
-	} while(tmpValue > 0);
-
-
-	if (pos > len)
-	{
-		// the len parameter is invalid.
-		return;
-	}
-
-	pBuf[pos] = '\0';
-
-	do {
-		pBuf[--pos] = pAscii[value % base];
-		value /= base;
-	} while(value > 0);
-
-	return;
-}
 
 static void initSSP(void)
 {
@@ -144,6 +91,7 @@ void task_reader(void *p){
 	//Read and send the data
 	initSSP();
 	Sensor_new();
+	display_new();
 	uint32_t val = 0;
 	while(1){
 		puts("TaskRead");
@@ -156,17 +104,11 @@ void task_reader(void *p){
 		else{
 			printf("Data sent sucessfull!\n");
 		}
-		//vTaskDelay(1000*5); // wait 5sec
 		taskYIELD();
 	}
 }
 
 void task_printer(void *p){
-	//Receive the data and print in BNC OLED
-	oled_init();
-	oled_clearScreen(OLED_COLOR_WHITE);
-	oled_putString(1,1,  (uint8_t*)"LUZ: ", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-
 	uint32_t val;
 	while(1){
 		val = 0;
@@ -174,9 +116,7 @@ void task_printer(void *p){
 
 		//1000 means 1sec of timeout
 		if(xQueueReceive(Global_Queue_handle, &val, 1000)){
-			intToString(val, buf, 10, 10);
-			oled_fillRect((1+6*6),1, 80, 8, OLED_COLOR_WHITE);
-			oled_putString((1+6*6),1, buf, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
+			display_write(val);
 			printf("Data received successful!\n");
 		}
 		else{
